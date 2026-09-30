@@ -1,0 +1,255 @@
+/* ===================================================
+   RESET / BASE
+=================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: radial-gradient(circle at 50% 45%, #fff1f3 0%, #fadde3 38%, #efb7c4 75%, #d98fa3 100%);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    font-family: Georgia, "Times New Roman", serif;
+}
+
+/* ===================================================
+   SCENE
+=================================================== */
+
+.scene {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 2200px;
+    overflow: hidden;
+}
+
+/* warm glow behind the book */
+.scene::before {
+    content: "";
+    position: absolute;
+    width: 90vmin;
+    height: 90vmin;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, .75) 0%, rgba(255, 226, 232, .35) 45%, rgba(255, 226, 232, 0) 70%);
+    pointer-events: none;
+}
+
+/* floating hearts */
+.petals {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.heart {
+    position: absolute;
+    bottom: -40px;
+    opacity: 0;
+    will-change: transform, opacity;
+    animation: floatUp linear infinite;
+}
+
+@keyframes floatUp {
+    0%   { transform: translate(0, 0) rotate(-12deg); opacity: 0; }
+    12%  { opacity: .7; }
+    50%  { transform: translate(var(--sway), -55vh) rotate(10deg); }
+    88%  { opacity: .6; }
+    100% { transform: translate(calc(var(--sway) * -0.6), -112vh) rotate(-8deg); opacity: 0; }
+}
+
+/* ===================================================
+   BOOK
+   --page-width / --page-height are set by script.js
+=================================================== */
+
+.book {
+    position: relative;
+    width: calc(var(--page-width, 300px) * 2);
+    height: var(--page-height, 420px);
+    transform-style: preserve-3d;
+    transition: transform 900ms cubic-bezier(.2, .75, .15, 1);
+    opacity: 0;                       /* shown once sizes are ready */
+}
+
+.book.ready {
+    opacity: 1;
+    transition: transform 900ms cubic-bezier(.2, .75, .15, 1), opacity 500ms ease;
+}
+
+.book.no-anim {
+    transition: none !important;
+}
+
+
+
+/* ===================================================
+   PAGE STACKS + SPINE  (make it look like a thick book)
+   Edges are drawn by script.js with layered shadows.
+=================================================== */
+
+.stack {
+    position: absolute;
+    top: 0;
+    width: var(--page-width);
+    height: var(--page-height);
+    background: transparent;   /* edges are drawn outside the box, so no blank page shows */
+    transform: translateZ(-2px);
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.stack.left  { left: 0; border-radius: 18px 4px 4px 18px; }
+.stack.right { left: var(--page-width); border-radius: 4px 18px 18px 4px; }
+
+.spine {
+    position: absolute;
+    top: 0;
+    height: var(--page-height);
+    transform: translateZ(-2px);
+    background: linear-gradient(90deg, #45101a 0%, #8a2630 45%, #6b1a22 100%);
+    border-radius: 4px 0 0 4px;
+    pointer-events: none;
+    opacity: 0;
+    display: none;
+}
+
+/* ===================================================
+   LEAF  (one physical sheet of paper: front + back)
+   Every leaf starts on the RIGHT side and rotates
+   around the spine (its left edge) to the LEFT side.
+=================================================== */
+
+.leaf {
+    position: absolute;
+    top: 0;
+    left: var(--page-width);
+    width: var(--page-width);
+    height: var(--page-height);
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transition: transform 900ms cubic-bezier(.3, .7, .2, 1);
+    will-change: transform;
+}
+
+.leaf.dragging {
+    transition: none;
+}
+
+/* ===================================================
+   FACES
+=================================================== */
+
+.face {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #f7f3ec;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* soft rounded outer corners: right pages round on the right, left pages on the left */
+.face.front { border-radius: 4px 18px 18px 4px; }
+.face.back  { border-radius: 18px 4px 4px 18px; transform: rotateY(180deg); }
+
+.face img,
+.face video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;      /* stretches to page. see note about image ratios */
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+
+/* cover video sits on top of the cover image */
+.face video {
+    position: absolute;
+    inset: 0;
+}
+
+/* curved-paper shading: dark in the spine fold, soft light on the bulge, faint fade at the outer edge */
+.face::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.face.front::after {
+    background: linear-gradient(to right,
+        rgba(90, 30, 45, .34) 0%,
+        rgba(90, 30, 45, 0) 11%,
+        rgba(255, 255, 255, .12) 52%,
+        rgba(255, 255, 255, 0) 78%,
+        rgba(90, 30, 45, .10) 100%);
+}
+
+.face.back::after {
+    background: linear-gradient(to left,
+        rgba(90, 30, 45, .34) 0%,
+        rgba(90, 30, 45, 0) 11%,
+        rgba(255, 255, 255, .12) 52%,
+        rgba(255, 255, 255, 0) 78%,
+        rgba(90, 30, 45, .10) 100%);
+}
+
+/* the cover has a softly rounded spine edge */
+.leaf.cover .face.front {
+    border-radius: 10px 18px 18px 10px;
+}
+
+.leaf.cover .face.front::after {
+    background: linear-gradient(to right,
+        rgba(90, 30, 45, .38) 0%,
+        rgba(255, 255, 255, .18) 2.5%,
+        rgba(90, 30, 45, 0) 7%,
+        rgba(255, 255, 255, .10) 55%,
+        rgba(90, 30, 45, .10) 100%);
+}
+
+/* ===================================================
+   HINT
+=================================================== */
+
+.hint {
+    position: absolute;
+    bottom: max(14px, env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 16px;
+    font-style: italic;
+    letter-spacing: .03em;
+    color: #b03a54;
+    opacity: .85;
+    pointer-events: none;
+    transition: opacity 500ms ease;
+}
+
+.hint.hidden {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .book,
+    .leaf {
+        transition-duration: 1ms !important;
+    }
+}
